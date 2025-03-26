@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualizador de PDF</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+        }
+        .pdf-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            padding: 20px;
+        }
+        .pdf-page {
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+            border-radius: 5px;
+            overflow: hidden;
+            background: white;
+            padding: 5px;
+            transition: transform 0.2s ease-in-out;
+        }
+        .pdf-page:hover {
+            transform: scale(1.05);
+            cursor: pointer;
+        }
+        canvas {
+            max-width: 300px;
+            height: auto;
+            display: block;
+        }
+        @media (max-width: 768px) {
+            .pdf-container {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            position: relative;
+        }
+        .modal-content canvas {
+            max-width: 80vw;
+            max-height: 80vh;
+        }
+        .close {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 20px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>Visualizador de PDF</h1>
+    <div class="pdf-container" id="pdf-container"></div>
+    
+    <!-- Modal -->
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <span class="close" id="close">&times;</span>
+            <canvas id="modal-canvas"></canvas>
+        </div>
+    </div>
+    
+    <script>
+        const pdfUrl = "https://raw.githubusercontent.com/UgbFerp/Eventos/7a477d508548866be419f1c45a89e802259850fc/Calendario_Prova_AV1_2025_1.pdf";
+        const modal = document.getElementById("modal");
+        const modalCanvas = document.getElementById("modal-canvas");
+        const modalContext = modalCanvas.getContext("2d");
+        const closeModal = document.getElementById("close");
+        
+        pdfjsLib.getDocument(pdfUrl).promise.then(pdf => {
+            const container = document.getElementById("pdf-container");
+            for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                pdf.getPage(pageNum).then(page => {
+                    const canvas = document.createElement("canvas");
+                    const context = canvas.getContext("2d");
+                    const wrapper = document.createElement("div");
+                    wrapper.classList.add("pdf-page");
+                    wrapper.appendChild(canvas);
+                    container.appendChild(wrapper);
+                    
+                    const viewport = page.getViewport({ scale: 0.6 });
+                    canvas.width = viewport.width;
+                    canvas.height = viewport.height;
+                    
+                    const renderContext = {
+                        canvasContext: context,
+                        viewport: viewport
+                    };
+                    page.render(renderContext);
+                    
+                    // Abre o modal com a página ampliada ao clicar
+                    wrapper.addEventListener("click", () => {
+                        modal.style.display = "flex";
+                        const modalViewport = page.getViewport({ scale: 1.5 });
+                        modalCanvas.width = modalViewport.width;
+                        modalCanvas.height = modalViewport.height;
+                        const modalRenderContext = {
+                            canvasContext: modalContext,
+                            viewport: modalViewport
+                        };
+                        page.render(modalRenderContext);
+                    });
+                });
+            }
+        });
+        
+        // Fecha o modal ao clicar no botão de fechar
+        closeModal.addEventListener("click", () => {
+            modal.style.display = "none";
+        });
+        
+        // Fecha o modal ao clicar fora do conteúdo
+        window.addEventListener("click", (e) => {
+            if (e.target === modal) {
+                modal.style.display = "none";
+            }
+        });
+    </script>
+</body>
+</html>
